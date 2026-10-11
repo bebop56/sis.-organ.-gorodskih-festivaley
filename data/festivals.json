@@ -1,0 +1,23 @@
+[
+    {
+        "id": 1,
+        "title": "Фестиваль уличной еды",
+        "venue_id": 1,
+        "festival_date": "2026-09-19",
+        "expected_visitors": 3500
+    },
+    {
+        "id": 2,
+        "title": "Джаз на набережной",
+        "venue_id": 2,
+        "festival_date": "2026-09-26",
+        "expected_visitors": 2000
+    },
+    {
+        "id": 3,
+        "title": "Книжный фестиваль",
+        "venue_id": 3,
+        "festival_date": "2026-10-03",
+        "expected_visitors": 1200
+    }
+]
