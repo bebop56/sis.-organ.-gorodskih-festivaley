@@ -131,7 +131,7 @@ city_festivals/
 
 ```bash
 python -m venv venv
-venv\Scriptsctivate
+venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
