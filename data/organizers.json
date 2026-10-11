@@ -1,0 +1,17 @@
+[
+    {
+        "id": 1,
+        "name": "Анна Смирнова",
+        "email": "anna@festcity.ru"
+    },
+    {
+        "id": 2,
+        "name": "Игорь Волков",
+        "email": "volkov@jazzfest.ru"
+    },
+    {
+        "id": 3,
+        "name": "Мария Кузнецова",
+        "email": "maria@bookfest.ru"
+    }
+]

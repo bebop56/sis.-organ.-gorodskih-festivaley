@@ -4,20 +4,35 @@
         "title": "Фестиваль уличной еды",
         "venue_id": 1,
         "festival_date": "2026-09-19",
-        "expected_visitors": 3500
+        "organizer_id": 1,
+        "expected_visitors": 3500,
+        "is_cancelled": false
     },
     {
         "id": 2,
         "title": "Джаз на набережной",
         "venue_id": 2,
         "festival_date": "2026-09-26",
-        "expected_visitors": 2000
+        "organizer_id": 2,
+        "expected_visitors": 2000,
+        "is_cancelled": false
     },
     {
         "id": 3,
         "title": "Книжный фестиваль",
         "venue_id": 3,
         "festival_date": "2026-10-03",
-        "expected_visitors": 1200
+        "organizer_id": 3,
+        "expected_visitors": 1200,
+        "is_cancelled": false
+    },
+    {
+        "id": 4,
+        "title": "Фестиваль фейерверков",
+        "venue_id": 1,
+        "festival_date": "2026-08-22",
+        "organizer_id": 1,
+        "expected_visitors": 4500,
+        "is_cancelled": true
     }
 ]
