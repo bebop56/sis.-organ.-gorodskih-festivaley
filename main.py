@@ -1,24 +1,41 @@
 """FestCity – консольное приложение для организации городских фестивалей."""
-from datetime import date
+from typing import List
 
-from festivals import (
+from models import Festival, Organizer, Venue
+from models.festivals import (
     cancel_festival,
     create_festival,
     festivals_statistics,
     get_venue_status,
     is_venue_available,
+    show_festivals,
 )
-from storage import load_festivals, load_venues, save_festivals, save_venues
-from utils import input_date, input_int
-from venues import (
+from models.organizers import (
+    add_organizer,
+    find_organizer,
+    find_organizer_by_id,
+    show_organizers,
+)
+from models.venues import (
     add_venue,
-    check_venue_capacity,
     filter_venues_by_capacity,
     find_venue,
+    find_venue_by_id,
+    show_venues,
     sort_venues,
 )
+from storage import (
+    load_festivals,
+    load_organizers,
+    load_venues,
+    save_festivals,
+    save_organizers,
+    save_venues,
+)
+from utils import input_date, input_int
 
 VENUES_FILE = "data/venues.json"
+ORGANIZERS_FILE = "data/organizers.json"
 FESTIVALS_FILE = "data/festivals.json"
 
 MENU = """
@@ -31,66 +48,108 @@ MENU = """
 6. Отменить фестиваль
 7. Показать фестивали
 8. Добавить площадку
-9. Статистика
+9. Показать организаторов
+10. Найти организатора
+11. Добавить организатора
+12. Статистика
 0. Выход
 """
 
 
-def show_venues(venues: list[dict]) -> None:
-    """Вывести список площадок в виде таблицы."""
-    if not venues:
-        print("Площадок нет.")
+def check_availability(
+    festivals: List[Festival],
+    venues: List[Venue],
+) -> None:
+    """Сценарий проверки доступности площадки на дату."""
+    venue = find_venue_by_id(venues, input_int("ID площадки: ", 1))
+    if venue is None:
+        print("Площадка не найдена.")
         return
-    print(f"{'ID':<4}{'Название':<28}{'Вместимость':>12}  Адрес")
-    for venue in venues:
-        print(
-            f"{venue['id']:<4}{venue['name']:<28}"
-            f"{venue['capacity']:>12}  {venue['address']}"
-        )
+    day = input_date("Дата (ДД.ММ.ГГГГ): ")
+    print(get_venue_status(is_venue_available(festivals, venue, day)))
 
 
-def show_festivals(festivals: list[dict], venues: dict[int, dict]) -> None:
-    """Вывести список фестивалей с названием площадки и датой."""
-    if not festivals:
-        print("Фестивалей нет.")
-        return
-    for festival in sorted(festivals, key=lambda f: f["festival_date"]):
-        venue = venues.get(festival["venue_id"], {"name": "—"})
-        day = date.fromisoformat(festival["festival_date"])
-        print(
-            f"#{festival['id']} {festival['title']} – {venue['name']}, "
-            f"{day:%d.%m.%Y}, {festival['expected_visitors']} чел."
-        )
-
-
-def plan_festival(festivals: list[dict], venues: dict[int, dict]) -> None:
+def create_new_festival(
+    festivals: List[Festival],
+    venues: List[Venue],
+    organizers: List[Organizer],
+) -> None:
     """Сценарий планирования фестиваля."""
     title = input("Название фестиваля: ").strip()
     if not title:
         print("Название не может быть пустым.")
         return
-    venue_id = input_int("ID площадки: ", min_value=1)
-    if venue_id not in venues:
+    venue = find_venue_by_id(venues, input_int("ID площадки: ", 1))
+    if venue is None:
         print("Площадка не найдена.")
         return
-    visitors = input_int("Ожидаемое число посетителей: ", min_value=1)
-    if not check_venue_capacity(venues, venue_id, visitors):
+    organizer = find_organizer_by_id(
+        organizers, input_int("ID организатора: ", 1)
+    )
+    if organizer is None:
+        print("Организатор не найден.")
+        return
+    visitors = input_int("Ожидаемое число посетителей: ", 1)
+    if not venue.is_suitable_for(visitors):
         print(get_venue_status(True, fits=False))
         return
-    festival_date = input_date("Дата (ДД.ММ.ГГГГ): ")
+    day = input_date("Дата (ДД.ММ.ГГГГ): ")
     festival = create_festival(
-        festivals, title, venue_id, festival_date, visitors
+        festivals, title, venue, day, organizer, visitors
     )
     if festival is None:
         print(get_venue_status(False))
     else:
-        print(f"Фестиваль запланирован, номер #{festival['id']}.")
+        print(f"Фестиваль запланирован, номер #{festival.id}.")
+
+
+def add_new_venue(venues: List[Venue]) -> None:
+    """Сценарий добавления площадки."""
+    name = input("Название площадки: ").strip()
+    address = input("Адрес: ").strip()
+    capacity = input_int("Вместимость: ", 1)
+    venue = add_venue(venues, name, address, capacity)
+    print(f"Площадка добавлена: [{venue.id}] {venue}")
+
+
+def add_new_organizer(organizers: List[Organizer]) -> None:
+    """Сценарий добавления организатора."""
+    name = input("Имя: ").strip()
+    email = input("E-mail: ").strip()
+    try:
+        organizer = add_organizer(organizers, name, email)
+    except ValueError as error:
+        print(f"Ошибка: {error}")
+        return
+    print(f"Организатор добавлен: [{organizer.id}] {organizer}")
+
+
+def show_statistics(festivals: List[Festival]) -> None:
+    """Вывести статистику по активным фестивалям."""
+    stats = festivals_statistics(festivals)
+    print(
+        f"Фестивалей: {stats['festivals']}, "
+        f"ожидается посетителей: {stats['visitors']}, "
+        f"задействовано площадок: {stats['venues_used']}"
+    )
+
+
+def save_all(
+    venues: List[Venue],
+    organizers: List[Organizer],
+    festivals: List[Festival],
+) -> None:
+    """Сохранить все коллекции в JSON-файлы."""
+    save_venues(VENUES_FILE, venues)
+    save_organizers(ORGANIZERS_FILE, organizers)
+    save_festivals(FESTIVALS_FILE, festivals)
 
 
 def main() -> None:
-    """Точка запуска: цикл меню и вызов функций проекта."""
+    """Точка запуска: загрузка данных, цикл меню, сохранение."""
     venues = load_venues(VENUES_FILE)
-    festivals = load_festivals(FESTIVALS_FILE)
+    organizers = load_organizers(ORGANIZERS_FILE)
+    festivals = load_festivals(FESTIVALS_FILE, venues, organizers)
 
     while True:
         print(MENU)
@@ -100,50 +159,38 @@ def main() -> None:
         elif choice == "2":
             show_venues(find_venue(venues, input("Название: ")))
         elif choice == "3":
-            visitors = input_int("Число посетителей: ", min_value=1)
+            visitors = input_int("Число посетителей: ", 1)
             show_venues(list(filter_venues_by_capacity(venues, visitors)))
         elif choice == "4":
-            venue_id = input_int("ID площадки: ", min_value=1)
-            if venue_id not in venues:
-                print("Площадка не найдена.")
-                continue
-            day = input_date("Дата (ДД.ММ.ГГГГ): ")
-            print(get_venue_status(
-                is_venue_available(festivals, venue_id, day)
-            ))
+            check_availability(festivals, venues)
         elif choice == "5":
-            plan_festival(festivals, venues)
-            save_festivals(FESTIVALS_FILE, festivals)
+            create_new_festival(festivals, venues, organizers)
         elif choice == "6":
-            festival_id = input_int("Номер фестиваля: ", min_value=1)
-            if cancel_festival(festivals, festival_id):
-                save_festivals(FESTIVALS_FILE, festivals)
+            if cancel_festival(festivals, input_int("Номер фестиваля: ", 1)):
                 print("Фестиваль отменён.")
             else:
-                print("Фестиваль не найден.")
+                print("Фестиваль не найден или уже отменён.")
         elif choice == "7":
-            show_festivals(festivals, venues)
+            show_festivals(festivals)
         elif choice == "8":
-            name = input("Название площадки: ").strip()
-            address = input("Адрес: ").strip()
-            capacity = input_int("Вместимость: ", min_value=1)
-            venue_id = add_venue(venues, name, address, capacity)
-            save_venues(VENUES_FILE, venues)
-            print(f"Площадка добавлена, ID {venue_id}.")
+            add_new_venue(venues)
         elif choice == "9":
-            stats = festivals_statistics(festivals)
-            print(
-                f"Фестивалей: {stats['festivals']}, "
-                f"ожидается посетителей: {stats['visitors']}, "
-                f"задействовано площадок: {stats['venues_used']}"
-            )
+            show_organizers(organizers)
+        elif choice == "10":
+            show_organizers(find_organizer(organizers, input("Запрос: ")))
+        elif choice == "11":
+            add_new_organizer(organizers)
+        elif choice == "12":
+            show_statistics(festivals)
         elif choice == "0":
-            save_venues(VENUES_FILE, venues)
-            save_festivals(FESTIVALS_FILE, festivals)
+            save_all(venues, organizers, festivals)
             print("Данные сохранены. До свидания!")
             break
         else:
             print("Неизвестная команда.")
+            continue
+        if choice in {"5", "6", "8", "11"}:
+            save_all(venues, organizers, festivals)
 
 
 if __name__ == "__main__":
