@@ -6,7 +6,7 @@ JSON используется для хранения, объекты – для
 import json
 import os
 from datetime import date
-from typing import List, Sequence
+from typing import List, Sequence, Tuple
 
 from models import Festival, Organizer, Venue
 from models.base import Entity
@@ -109,3 +109,15 @@ def save_organizers(filename: str, organizers: List[Organizer]) -> None:
 def save_festivals(filename: str, festivals: List[Festival]) -> None:
     """Сохранить фестивали в JSON-файл (объекты-ссылки → id)."""
     save_entities(filename, festivals)
+
+
+def load_all(
+    data_dir: str,
+) -> Tuple[List[Venue], List[Organizer], List[Festival]]:
+    """Загрузить все коллекции из каталога data_dir со связями."""
+    venues = load_venues(os.path.join(data_dir, "venues.json"))
+    organizers = load_organizers(os.path.join(data_dir, "organizers.json"))
+    festivals = load_festivals(
+        os.path.join(data_dir, "festivals.json"), venues, organizers
+    )
+    return venues, organizers, festivals
