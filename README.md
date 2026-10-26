@@ -7,7 +7,8 @@ FestCity – приложение для планирования городск
 вместимости и закрепить её за фестивалем на нужную дату так, чтобы
 на одной площадке в один день не проходило два мероприятия.
 
-Консольная версия (ПР1–ПР3) дополнена веб-интерфейсом на Django (ПР5).
+Консольная версия (ПР1–ПР3) дополнена веб-интерфейсом на Django (ПР5),
+страницы которого построены на системе шаблонов Django (ПР6).
 
 ## Целевая аудитория
 
@@ -56,31 +57,67 @@ FestCity – приложение для планирования городск
 
 - Python 3.11+;
 - Django 5.2 – веб-фреймворк;
+- Django Template Language (DTL) – шаблоны страниц;
 - HTML – разметка страниц;
-- CSS и Bootstrap 5.3 – оформление страниц;
+- CSS (собственный `style.css`) и Bootstrap 5.3 – оформление страниц;
+- JavaScript (`main.js`) – небольшое поведение интерфейса;
 - pytest – автоматизированные тесты;
 - flake8 – проверка качества кода.
 
-## Страницы веб-интерфейса (ПР5)
+## Страницы веб-интерфейса
 
-| URL | View-функция | Назначение |
-|-----|--------------|------------|
-| `/` | `homepage.views.index` | описание приложения, статистика, навигация |
-| `/venues/` | `venues.views.venues` | список площадок из `data/venues.json` |
-| `/venues/<int:venue_id>/` | `venues.views.venue_detail` | карточка площадки, доступность сегодня, фестивали на ней |
-| `/festivals/` | `festivals.views.festivals` | список фестивалей со статусами |
-| `/festivals/<int:festival_id>/` | `festivals.views.festival_detail` | карточка фестиваля, площадка, организатор, заполненность |
+| URL | Имя маршрута | View-функция | Шаблон |
+|-----|--------------|--------------|--------|
+| `/` | `homepage:index` | `homepage.views.index` | `homepage/index.html` |
+| `/venues/` | `venues:list` | `venues.views.venues` | `venues/venue_list.html` |
+| `/venues/<int:venue_id>/` | `venues:detail` | `venues.views.venue_detail` | `venues/venue_detail.html` |
+| `/festivals/` | `festivals:list` | `festivals.views.festivals` | `festivals/festival_list.html` |
+| `/festivals/<int:festival_id>/` | `festivals:detail` | `festivals.views.festival_detail` | `festivals/festival_detail.html` |
 
-Если площадка или фестиваль не найдены, страница возвращает код 404.
-Для любых неизвестных адресов подключён собственный обработчик
-`handler404 = "homepage.views.page_not_found"` (работает при `DEBUG = False`).
+Если площадка или фестиваль не найдены, шаблон выводит сообщение
+(`{% if %}` / `{% else %}`), а `render()` возвращает код 404.
+Для неизвестных адресов подключён `handler404 = "homepage.views.page_not_found"`
+(шаблон `homepage/404.html`, работает при `DEBUG = False`).
 
-Общий HTML-каркас (кодировка, viewport, Bootstrap, навигация) формирует
-функция `page()` в `homepage/views.py`; остальные приложения импортируют её.
+## Шаблоны Django (ПР6)
+
+HTML больше не формируется в Python: функция `page()` из ПР5 удалена,
+все view-функции подготавливают данные и вызывают
+`render(request, "<шаблон>", context)`.
+
+- **Базовый шаблон** `templates/base.html` (каталог уровня проекта,
+  подключён через `TEMPLATES["DIRS"] = [BASE_DIR / "templates"]`):
+  HTML-каркас, Bootstrap, собственный CSS, навигация, подвал, JavaScript;
+  блоки `{% block title %}` и `{% block content %}`.
+- **Наследование**: все страницы начинаются с `{% extends "base.html" %}`.
+- **Включаемые шаблоны** (`{% include %}`):
+  `templates/includes/navigation.html` – меню сайта,
+  `venues/includes/venue_card.html` – карточка площадки,
+  `festivals/includes/festival_status.html` – статус фестиваля
+  (используется в списке фестивалей, карточке фестиваля и на странице площадки).
+- **Контекст**: например, `{"venues": sort_venues(...)}` →
+  `{% for venue in venues %}`.
+- **Циклы и условия**: `{% for %}` с `{% empty %}` для пустых списков,
+  `{% if festival.is_cancelled %}` для статуса, `{% if available %}` для
+  доступности площадки.
+- **Именованные URL и пространства имён**: в каждом `urls.py` задан
+  `app_name`; ссылки строятся через `{% url 'venues:detail' venue.id %}`,
+  жёстко заданных адресов в шаблонах нет.
+- **Фильтры**: `|length` (количество площадок и фестивалей),
+  `|default:"Без названия"`, `|date:"d.m.Y"` (даты фестивалей), `|lower`
+  (e-mail организатора); тег `{% now "d.m.Y" %}` выводит текущую дату.
+- **Статические файлы** (`homepage/static/homepage/`):
+  `css/style.css` – собственные стили (шапка, карточки, статусы, подвал),
+  `js/main.js` – текущий год в подвале и подсветка фестивалей,
+  до которых осталось меньше 30 дней,
+  `img/logo.png` – логотип в навигации. Подключаются через
+  `{% load static %}` и `{% static '...' %}`.
+
 View-функции не дублируют предметную логику: они загружают данные
 через `storage.load_all()` и используют функции ПР3
 (`find_venue_by_id()`, `find_festival_by_id()`, `is_venue_available()`,
-`sort_venues()`).
+`sort_venues()`, `festivals_statistics()`). Данные по-прежнему хранятся
+в JSON, Django ORM и формы пока не используются.
 
 ### Отложено до следующих работ
 
@@ -148,14 +185,33 @@ city_festivals/
 │   ├── urls.py          – корневые маршруты и handler404
 │   ├── asgi.py
 │   └── wsgi.py
-├── homepage/            – главная страница, page(), страница 404
+├── templates/           – шаблоны уровня проекта
+│   ├── base.html        – базовый шаблон
+│   └── includes/
+│       └── navigation.html
+├── homepage/            – главная страница и страница 404
+│   ├── templates/homepage/
+│   │   ├── index.html
+│   │   └── 404.html
+│   ├── static/homepage/
+│   │   ├── css/style.css
+│   │   ├── js/main.js
+│   │   └── img/logo.png
 │   ├── urls.py
 │   ├── views.py
 │   └── tests.py         – тесты страниц (python manage.py test)
 ├── venues/              – веб-страницы площадок
+│   ├── templates/venues/
+│   │   ├── venue_list.html
+│   │   ├── venue_detail.html
+│   │   └── includes/venue_card.html
 │   ├── urls.py
 │   └── views.py
 ├── festivals/           – веб-страницы фестивалей
+│   ├── templates/festivals/
+│   │   ├── festival_list.html
+│   │   ├── festival_detail.html
+│   │   └── includes/festival_status.html
 │   ├── urls.py
 │   └── views.py
 ├── models/              – классы предметной области (ПР3)
@@ -215,7 +271,7 @@ python manage.py test
 ## Проверка качества кода
 
 ```bash
-flake8
+flake8 . --extend-exclude=venv
 ```
 
 ## Текущее состояние и план развития
@@ -225,12 +281,13 @@ flake8
 - ПР1 – начальный сценарий проверки площадки;
 - ПР2 – модули, коллекции, JSON-хранилище, исключения, тесты;
 - ПР3 – объектная модель (Entity, Venue, Organizer, Festival);
-- ПР5 – Django-проект, три приложения, маршрутизация, страницы на Bootstrap.
+- ПР5 – Django-проект, три приложения, маршрутизация, страницы на Bootstrap;
+- ПР6 – шаблоны Django (наследование, include, контекст, циклы, условия,
+  фильтры, именованные URL), собственные CSS, JavaScript и изображение.
 
 На следующих этапах планируется:
 
 - перенос Venue, Organizer и Festival в модели Django ORM;
-- переход на шаблоны (`templates/`) вместо функции `page()`;
 - формы планирования и отмены фестивалей;
 - подключение базы данных;
 - регистрация и вход организаторов;
