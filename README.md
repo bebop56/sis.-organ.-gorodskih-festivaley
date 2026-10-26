@@ -9,6 +9,8 @@ FestCity – приложение для планирования городск
 
 Консольная версия (ПР1–ПР3) дополнена веб-интерфейсом на Django (ПР5),
 страницы которого построены на системе шаблонов Django (ПР6).
+С ПР7 веб-страницы получают данные из базы SQLite с помощью SQL-запросов
+(модуль `sqlite3` стандартной библиотеки, без Django ORM).
 
 ## Целевая аудитория
 
@@ -61,6 +63,7 @@ FestCity – приложение для планирования городск
 - HTML – разметка страниц;
 - CSS (собственный `style.css`) и Bootstrap 5.3 – оформление страниц;
 - JavaScript (`main.js`) – небольшое поведение интерфейса;
+- SQLite и SQL (`sqlite3`) – реляционное хранение данных;
 - pytest – автоматизированные тесты;
 - flake8 – проверка качества кода.
 
@@ -70,8 +73,12 @@ FestCity – приложение для планирования городск
 |-----|--------------|--------------|--------|
 | `/` | `homepage:index` | `homepage.views.index` | `homepage/index.html` |
 | `/venues/` | `venues:list` | `venues.views.venues` | `venues/venue_list.html` |
+| `/venues/?min_capacity=N` | `venues:list` | `venues.views.venues` | `venues/venue_list.html` |
+| `/venues/available/?date=&visitors=` | `venues:available` | `venues.views.available_venues` | `venues/available.html` |
 | `/venues/<int:venue_id>/` | `venues:detail` | `venues.views.venue_detail` | `venues/venue_detail.html` |
 | `/festivals/` | `festivals:list` | `festivals.views.festivals` | `festivals/festival_list.html` |
+| `/festivals/?status=active` | `festivals:list` | `festivals.views.festivals` | `festivals/festival_list.html` |
+| `/festivals/statistics/` | `festivals:statistics` | `festivals.views.statistics` | `festivals/statistics.html` |
 | `/festivals/<int:festival_id>/` | `festivals:detail` | `festivals.views.festival_detail` | `festivals/festival_detail.html` |
 
 Если площадка или фестиваль не найдены, шаблон выводит сообщение
@@ -113,11 +120,106 @@ HTML больше не формируется в Python: функция `page()`
   `img/logo.png` – логотип в навигации. Подключаются через
   `{% load static %}` и `{% static '...' %}`.
 
-View-функции не дублируют предметную логику: они загружают данные
-через `storage.load_all()` и используют функции ПР3
-(`find_venue_by_id()`, `find_festival_by_id()`, `is_venue_available()`,
-`sort_venues()`, `festivals_statistics()`). Данные по-прежнему хранятся
-в JSON, Django ORM и формы пока не используются.
+В ПР6 view-функции получали данные из JSON через `storage.load_all()`;
+в ПР7 источником данных веб-части стала база SQLite (см. ниже).
+
+## База данных SQLite (ПР7)
+
+Данные предметной области перенесены из JSON в реляционную базу
+`data/festcity.sqlite`. JSON-файлы и консольная версия сохранены как
+предыдущая реализация; Django ORM на этом этапе не используется.
+
+### Структура таблиц
+
+`venues` – площадки:
+
+| Поле | Тип | Назначение |
+|------|-----|------------|
+| `id` | INTEGER | первичный ключ |
+| `name` | TEXT NOT NULL | название |
+| `address` | TEXT | адрес (может отсутствовать) |
+| `capacity` | INTEGER NOT NULL, CHECK > 0 | вместимость |
+
+`organizers` – организаторы:
+
+| Поле | Тип | Назначение |
+|------|-----|------------|
+| `id` | INTEGER | первичный ключ |
+| `name` | TEXT NOT NULL | имя |
+| `email` | TEXT NOT NULL UNIQUE | e-mail |
+
+`festivals` – фестивали:
+
+| Поле | Тип | Назначение |
+|------|-----|------------|
+| `id` | INTEGER | первичный ключ |
+| `title` | TEXT NOT NULL | название |
+| `venue_id` | INTEGER NOT NULL | внешний ключ → `venues.id` |
+| `organizer_id` | INTEGER NOT NULL | внешний ключ → `organizers.id` |
+| `festival_date` | TEXT NOT NULL | дата в формате `YYYY-MM-DD` |
+| `expected_visitors` | INTEGER NOT NULL, CHECK > 0 | ожидаемое число посетителей |
+| `is_cancelled` | INTEGER NOT NULL DEFAULT 0 | 0 – активен, 1 – отменён |
+
+```text
+festivals
+ ├── venue_id     → venues.id
+ └── organizer_id → organizers.id
+```
+
+### Файлы слоя базы данных
+
+- `sql/schema.sql` – команды `CREATE TABLE IF NOT EXISTS` (повторный запуск безопасен);
+- `sql/queries.sql` – 16 проверенных запросов с комментариями;
+- `db/database.py` – `get_connection()` (`sqlite3.connect`,
+  `PRAGMA foreign_keys = ON`, `row_factory = sqlite3.Row`),
+  `create_schema()`, `fetch_all()` / `fetch_one()` для параметризованных
+  запросов (поля `*_date` преобразуются в `date` для фильтра `|date`);
+- `db/import_json.py` – перенос данных из JSON: создаёт схему, очищает
+  таблицы и вставляет записи через `executemany()` с параметрами `?`
+  (сначала площадки и организаторы, затем фестивали), `commit()` /
+  `rollback()`.
+
+Создание базы и перенос данных (из корня проекта):
+
+```bash
+python -m db.import_json
+```
+
+### SQL-запросы (`sql/queries.sql`)
+
+| № | Вид | Задача | Где используется |
+|---|-----|--------|------------------|
+| 1 | список | площадки по вместимости | `/venues/` |
+| 2 | список | организаторы по алфавиту | проверка в CLI |
+| 3 | список, LIMIT | три ближайших фестиваля | `/` |
+| 4 | WHERE | площадки вместимостью не менее N | `/venues/?min_capacity=N` |
+| 5 | WHERE | активные фестивали | `/festivals/?status=active` |
+| 6 | WHERE, LIKE | поиск фестиваля по части названия | проверка в CLI |
+| 7 | WHERE, подзапрос NOT IN | свободные на дату площадки нужной вместимости | `/venues/available/` |
+| 8 | JOIN | фестивали с площадкой и организатором | `/festivals/` |
+| 9 | JOIN | полная информация о фестивале, заполненность | `/festivals/<id>/` |
+| 10 | JOIN | фестивали на площадке | `/venues/<id>/` |
+| 11 | COUNT, SUM, AVG, MIN, MAX | сводка по активным фестивалям | `/`, `/festivals/statistics/` |
+| 12 | COUNT, SUM | число площадок и суммарная вместимость | `/` |
+| 13 | LEFT JOIN, GROUP BY | загрузка площадок | `/festivals/statistics/` |
+| 14 | LEFT JOIN, GROUP BY | фестивали и отмены по организаторам | `/festivals/statistics/` |
+| 15 | GROUP BY, HAVING | площадки с более чем одним активным фестивалем | `/festivals/statistics/` |
+| 16 | GROUP BY | фестивали по месяцам | `/festivals/statistics/` |
+
+Все значения, полученные от пользователя (дата, вместимость, id из URL),
+передаются в запросы параметрами `?`; f-строки и конкатенация для
+подстановки значений не используются.
+
+### Сопоставление с предыдущей реализацией
+
+| ПР3–ПР6 (JSON + Python) | ПР7 (SQLite + SQL) |
+|-------------------------|--------------------|
+| `find_venue_by_id()` | `WHERE id = ?` |
+| `sort_venues()` | `ORDER BY capacity DESC` |
+| `filter_venues_by_capacity()` | `WHERE capacity >= ?` |
+| `is_venue_available()` | подзапрос `NOT IN` по дате и `is_cancelled = 0` |
+| связи `festival.venue`, `festival.organizer` | `JOIN venues`, `JOIN organizers` |
+| `festivals_statistics()` | `COUNT()`, `SUM()`, `GROUP BY` |
 
 ### Отложено до следующих работ
 
@@ -203,6 +305,7 @@ city_festivals/
 ├── venues/              – веб-страницы площадок
 │   ├── templates/venues/
 │   │   ├── venue_list.html
+│   │   ├── available.html
 │   │   ├── venue_detail.html
 │   │   └── includes/venue_card.html
 │   ├── urls.py
@@ -211,6 +314,7 @@ city_festivals/
 │   ├── templates/festivals/
 │   │   ├── festival_list.html
 │   │   ├── festival_detail.html
+│   │   ├── statistics.html
 │   │   └── includes/festival_status.html
 │   ├── urls.py
 │   └── views.py
@@ -219,11 +323,19 @@ city_festivals/
 │   ├── venues.py        – Venue и функции площадок
 │   ├── organizers.py    – Organizer и функции организаторов
 │   └── festivals.py     – Festival и функции фестивалей
+├── db/                  – слой базы данных (ПР7)
+│   ├── __init__.py
+│   ├── database.py      – подключение к SQLite
+│   └── import_json.py   – перенос данных из JSON
+├── sql/
+│   ├── schema.sql       – создание таблиц
+│   └── queries.sql      – SQL-запросы проекта
 ├── data/
 │   ├── venues.json
 │   ├── organizers.json
-│   └── festivals.json
-└── tests/               – тесты pytest консольной части
+│   ├── festivals.json
+│   └── festcity.sqlite  – база данных SQLite
+└── tests/               – тесты pytest (в т.ч. test_database.py)
 ```
 
 ## Требования
@@ -243,9 +355,10 @@ pip install -r requirements.txt
 
 ## Запуск
 
-Веб-версия (Django):
+Веб-версия (Django). При первом запуске создать базу данных:
 
 ```bash
+python -m db.import_json
 python manage.py runserver
 ```
 
@@ -261,7 +374,9 @@ python main.py
 
 Тесты проверяют классы (атрибуты, `__str__`, проверки значений),
 функции коллекций, запрет двойного бронирования площадки, отмену
-фестиваля и восстановление связей при загрузке из JSON.
+фестиваля и восстановление связей при загрузке из JSON, а также
+создание базы SQLite, импорт данных, проверку внешних ключей
+и SQL-запрос поиска свободных площадок (`tests/test_database.py`).
 
 ```bash
 pytest -v
@@ -283,13 +398,14 @@ flake8 . --extend-exclude=venv
 - ПР3 – объектная модель (Entity, Venue, Organizer, Festival);
 - ПР5 – Django-проект, три приложения, маршрутизация, страницы на Bootstrap;
 - ПР6 – шаблоны Django (наследование, include, контекст, циклы, условия,
-  фильтры, именованные URL), собственные CSS, JavaScript и изображение.
+  фильтры, именованные URL), собственные CSS, JavaScript и изображение;
+- ПР7 – база данных SQLite, перенос данных из JSON, SQL-запросы,
+  страницы поиска свободных площадок и статистики на данных из базы.
 
 На следующих этапах планируется:
 
-- перенос Venue, Organizer и Festival в модели Django ORM;
+- переход от SQL-запросов к моделям Django ORM;
 - формы планирования и отмены фестивалей;
-- подключение базы данных;
 - регистрация и вход организаторов;
 - разработка API;
 - контейнеризация приложения;
