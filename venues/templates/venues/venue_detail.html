@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {% if venue %}{{ venue.name }} – FestCity{% else %}Площадка не найдена – FestCity{% endif %}
+{% endblock %}
+
+{% block content %}
+    {% if venue %}
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <h1 class="card-title h3">{{ venue.name }}</h1>
+                <p class="card-text"><strong>ID:</strong> {{ venue.id }}</p>
+                <p class="card-text"><strong>Адрес:</strong> {{ venue.address }}</p>
+                <p class="card-text"><strong>Вместимость:</strong> {{ venue.capacity }} чел.</p>
+                <p class="card-text">
+                    Доступность на {% now "d.m.Y" %}:
+                    {% if available %}
+                        <span class="badge bg-success">свободна</span>
+                    {% else %}
+                        <span class="badge bg-danger">занята</span>
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+
+        <h2 class="h5">Фестивали на площадке ({{ festivals|length }})</h2>
+        <ul class="list-group">
+            {% for festival in festivals %}
+                <li class="list-group-item d-flex justify-content-between{% if festival.is_cancelled %} festival-cancelled{% endif %}">
+                    <span>
+                        <a href="{% url 'festivals:detail' festival.id %}">{{ festival.title }}</a>
+                        – {{ festival.festival_date|date:"d.m.Y" }}
+                    </span>
+                    {% include "festivals/includes/festival_status.html" %}
+                </li>
+            {% empty %}
+                <li class="list-group-item">Фестивалей пока нет.</li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <h1 class="text-danger">Площадка не найдена</h1>
+        <p>Площадка с указанным идентификатором отсутствует.</p>
+    {% endif %}
+
+    <a href="{% url 'venues:list' %}" class="btn btn-outline-secondary mt-3">
+        ← к списку площадок
+    </a>
+{% endblock %}
