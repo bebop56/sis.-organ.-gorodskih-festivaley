@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Главная – FestCity{% endblock %}
+
+{% block content %}
+    <div class="festcity-hero shadow-sm">
+        <h1 class="display-5">FestCity</h1>
+        <p class="lead">
+            Система организации городских фестивалей: подбор площадок
+            по вместимости и планирование мероприятий без накладок по датам.
+        </p>
+        <a href="{% url 'venues:list' %}" class="btn btn-primary me-2">Площадки</a>
+        <a href="{% url 'festivals:list' %}" class="btn btn-outline-dark">Фестивали</a>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-sm-4">
+            <div class="card stat-card text-center">
+                <div class="card-body">
+                    <div class="stat-value">{{ venues_count }}</div>
+                    <div class="text-muted">площадок в городе</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-4">
+            <div class="card stat-card text-center">
+                <div class="card-body">
+                    <div class="stat-value">{{ stats.festivals }}</div>
+                    <div class="text-muted">активных фестивалей</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-4">
+            <div class="card stat-card text-center">
+                <div class="card-body">
+                    <div class="stat-value">{{ stats.visitors }}</div>
+                    <div class="text-muted">ожидаемых посетителей</div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

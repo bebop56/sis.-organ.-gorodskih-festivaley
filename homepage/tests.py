@@ -19,3 +19,13 @@ class PagesTests(TestCase):
         self.assertEqual(self.client.get("/venues/999/").status_code, 404)
         self.assertEqual(self.client.get("/festivals/999/").status_code, 404)
         self.assertEqual(self.client.get("/nonexistent/").status_code, 404)
+
+    def test_pages_use_templates(self):
+        response = self.client.get("/venues/")
+        self.assertTemplateUsed(response, "base.html")
+        self.assertTemplateUsed(response, "venues/includes/venue_card.html")
+        self.assertContains(response, "Всего площадок: 4")
+        self.assertContains(response, "homepage/css/style.css")
+        response = self.client.get("/festivals/999/")
+        self.assertTemplateUsed(response, "festivals/festival_detail.html")
+        self.assertContains(response, "Фестиваль не найден", status_code=404)

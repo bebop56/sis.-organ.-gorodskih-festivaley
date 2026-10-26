@@ -1,0 +1,18 @@
+{% load static %}
+<nav class="navbar navbar-expand navbar-dark bg-dark festcity-navbar">
+    <div class="container">
+        <a class="navbar-brand d-flex align-items-center" href="{% url 'homepage:index' %}">
+            <img
+                src="{% static 'homepage/img/logo.png' %}"
+                alt="FestCity"
+                class="festcity-logo me-2"
+            >
+            FestCity
+        </a>
+        <div class="navbar-nav">
+            <a class="nav-link" href="{% url 'homepage:index' %}">Главная</a>
+            <a class="nav-link" href="{% url 'venues:list' %}">Площадки</a>
+            <a class="nav-link" href="{% url 'festivals:list' %}">Фестивали</a>
+        </div>
+    </div>
+</nav>
