@@ -12,6 +12,9 @@ FestCity – приложение для планирования городск
 С ПР7 веб-страницы получают данные из базы SQLite с помощью SQL-запросов
 (модуль `sqlite3` стандартной библиотеки, без Django ORM).
 
+Как установить и запустить проект на Windows – см. раздел
+[«Запуск на Windows (пошагово)»](#запуск-на-windows-пошагово).
+
 ## Целевая аудитория
 
 - организаторы фестивалей (творческие коллективы, НКО, ивент-агентства);
@@ -181,7 +184,7 @@ festivals
 
 Создание базы и перенос данных (из корня проекта):
 
-```bash
+```powershell
 python -m db.import_json
 ```
 
@@ -338,37 +341,167 @@ city_festivals/
 └── tests/               – тесты pytest (в т.ч. test_database.py)
 ```
 
-## Требования
+## Запуск на Windows (пошагово)
 
-- Python 3.11+;
-- Django 5.2;
-- pytest;
-- flake8.
+Инструкция для Windows 10/11. Все команды выполняются в **PowerShell**
+(Пуск → «PowerShell») или во встроенном терминале VS Code.
 
-Установка зависимостей:
+### Шаг 1. Установить Python и Git
 
-```bash
+1. **Python 3.11 или новее** – скачать с https://www.python.org/downloads/windows/.
+   В первом окне установщика обязательно отметить
+   **«Add python.exe to PATH»**, затем нажать «Install Now».
+2. **Git** – скачать с https://git-scm.com/download/win и установить
+   с настройками по умолчанию.
+3. Закрыть и заново открыть PowerShell, проверить установку:
+
+```powershell
+python --version
+git --version
+```
+
+Должны вывестись версии, например `Python 3.12.x` и `git version 2.x`.
+
+> Если вместо версии Python открывается Microsoft Store – Python не
+> добавлен в PATH. Используйте команду `py` вместо `python`
+> (например, `py -m venv venv`) или переустановите Python с галочкой
+> «Add python.exe to PATH».
+
+### Шаг 2. Скачать проект
+
+```powershell
+cd $HOME\Desktop
+git clone https://github.com/bebop56/sis.-organ.-gorodskih-festivaley.git
+cd sis.-organ.-gorodskih-festivaley
+```
+
+Без Git: на странице репозитория нажать **Code → Download ZIP**,
+распаковать архив и перейти в распакованную папку командой `cd`.
+Если в пути есть пробелы, путь берётся в кавычки:
+`cd "C:\Users\Имя\Desktop\моя папка\sis.-organ.-gorodskih-festivaley"`.
+
+Все дальнейшие команды выполняются **из этой папки** (в ней лежит
+`manage.py`).
+
+### Шаг 3. Создать и активировать виртуальное окружение
+
+```powershell
 python -m venv venv
-venv\Scripts\activate
+venv\Scripts\Activate.ps1
+```
+
+После активации в начале строки появится `(venv)`.
+
+> Если PowerShell пишет, что выполнение сценариев отключено
+> (`running scripts is disabled on this system`), один раз выполните
+> команду ниже и повторите активацию:
+>
+> ```powershell
+> Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+> ```
+>
+> В обычной командной строке (cmd) окружение активируется командой
+> `venv\Scripts\activate.bat`.
+
+### Шаг 4. Установить зависимости
+
+```powershell
+python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-## Запуск
+Устанавливаются Django 5.2, pytest и flake8. Проверка:
 
-Веб-версия (Django). При первом запуске создать базу данных:
+```powershell
+python -m django --version
+```
 
-```bash
+### Шаг 5. Создать базу данных SQLite
+
+Файл `data/festcity.sqlite` уже есть в репозитории, но его можно
+пересоздать из JSON-файлов в любой момент (команда безопасна
+при повторном запуске):
+
+```powershell
 python -m db.import_json
+```
+
+Ожидаемый вывод:
+
+```text
+venues: 4
+organizers: 3
+festivals: 7
+```
+
+### Шаг 6. Запустить веб-версию
+
+```powershell
+python manage.py check
 python manage.py runserver
 ```
 
-После запуска открыть http://127.0.0.1:8000/
+`check` должен вывести `System check identified no issues (0 silenced).`
+Сообщение runserver о непримененных миграциях (`unapplied migration(s)`)
+можно игнорировать: таблицы Django ORM в проекте пока не используются,
+данные берутся из `data/festcity.sqlite`.
 
-Консольная версия (сохранена):
+Открыть в браузере http://127.0.0.1:8000/ и проверить страницы:
 
-```bash
+| Адрес | Что открывается |
+|-------|-----------------|
+| http://127.0.0.1:8000/ | главная: сводка и ближайшие фестивали |
+| http://127.0.0.1:8000/venues/ | список площадок, фильтр по вместимости |
+| http://127.0.0.1:8000/venues/1/ | карточка площадки |
+| http://127.0.0.1:8000/venues/available/ | поиск свободных площадок на дату |
+| http://127.0.0.1:8000/festivals/ | список фестивалей (кнопка «Только активные») |
+| http://127.0.0.1:8000/festivals/1/ | карточка фестиваля |
+| http://127.0.0.1:8000/festivals/statistics/ | статистика |
+
+Остановить сервер – **Ctrl+C** в окне PowerShell.
+
+### Шаг 7. Консольная версия (по желанию)
+
+```powershell
 python main.py
 ```
+
+Работа ведётся через меню из пунктов 0–12; данные консольной версии
+хранятся в `data/*.json` и сохраняются при выходе (пункт 0).
+Чтобы изменения из консольной версии появились на сайте, после неё
+выполните `python -m db.import_json`.
+
+### Шаг 8. Тесты и проверка кода (по желанию)
+
+```powershell
+pytest -v
+python manage.py test
+flake8 . --extend-exclude=venv
+```
+
+### Повторный запуск
+
+При следующем запуске достаточно открыть PowerShell в папке проекта и
+выполнить:
+
+```powershell
+venv\Scripts\Activate.ps1
+python manage.py runserver
+```
+
+Выйти из виртуального окружения – команда `deactivate`.
+
+### Частые проблемы
+
+| Проблема | Решение |
+|----------|---------|
+| `python` открывает Microsoft Store или «не является командой» | использовать `py` вместо `python` или переустановить Python с галочкой «Add python.exe to PATH» |
+| `running scripts is disabled on this system` | `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned` |
+| `No module named 'django'` | не активировано окружение: `venv\Scripts\Activate.ps1`, затем `pip install -r requirements.txt` |
+| `can't open file 'manage.py'` | команда выполняется не из папки проекта – перейдите в неё через `cd` |
+| `no such table: venues` | база не создана: `python -m db.import_json` |
+| `Error: That port is already in use` | порт 8000 занят: `python manage.py runserver 8001` и открыть http://127.0.0.1:8001/ |
+| в консоли вместо русских букв «кракозябры» | выполнить `chcp 65001` перед запуском `python main.py` |
 
 ## Запуск тестов
 
@@ -378,14 +511,14 @@ python main.py
 создание базы SQLite, импорт данных, проверку внешних ключей
 и SQL-запрос поиска свободных площадок (`tests/test_database.py`).
 
-```bash
+```powershell
 pytest -v
 python manage.py test
 ```
 
 ## Проверка качества кода
 
-```bash
+```powershell
 flake8 . --extend-exclude=venv
 ```
 
