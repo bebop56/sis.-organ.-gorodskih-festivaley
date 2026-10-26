@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}Статистика – FestCity{% endblock %}
+
+{% block content %}
+    <h1 class="mb-3">Статистика фестивалей</h1>
+
+    <div class="row g-3 mb-4">
+        <div class="col-sm-3">
+            <div class="card stat-card text-center"><div class="card-body">
+                <div class="stat-value">{{ summary.festivals_count }}</div>
+                <div class="text-muted">активных фестивалей</div>
+            </div></div>
+        </div>
+        <div class="col-sm-3">
+            <div class="card stat-card text-center"><div class="card-body">
+                <div class="stat-value">{{ summary.visitors_total }}</div>
+                <div class="text-muted">ожидаемых посетителей</div>
+            </div></div>
+        </div>
+        <div class="col-sm-3">
+            <div class="card stat-card text-center"><div class="card-body">
+                <div class="stat-value">{{ summary.visitors_avg|floatformat:0|default:"–" }}</div>
+                <div class="text-muted">в среднем на фестиваль</div>
+            </div></div>
+        </div>
+        <div class="col-sm-3">
+            <div class="card stat-card text-center"><div class="card-body">
+                <div class="stat-value">{{ summary.visitors_min|default:"–" }}–{{ summary.visitors_max|default:"–" }}</div>
+                <div class="text-muted">мин.–макс. посетителей</div>
+            </div></div>
+        </div>
+    </div>
+    {% if summary.first_date %}
+        <p class="text-muted">
+            Фестивали проходят с {{ summary.first_date|date:"d.m.Y" }}
+            по {{ summary.last_date|date:"d.m.Y" }}.
+        </p>
+    {% endif %}
+
+    <h2 class="h4 mt-4">Загрузка площадок</h2>
+    <table class="table table-sm bg-white">
+        <thead>
+            <tr><th>Площадка</th><th>Активных фестивалей</th><th>Посетителей</th></tr>
+        </thead>
+        <tbody>
+            {% for item in by_venue %}
+                <tr>
+                    <td><a href="{% url 'venues:detail' item.id %}">{{ item.venue_name }}</a></td>
+                    <td>{{ item.festivals_count }}</td>
+                    <td>{{ item.visitors_total }}</td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="3">Данные отсутствуют.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h2 class="h4 mt-4">Популярные площадки (более одного активного фестиваля)</h2>
+    <ul class="list-group mb-4">
+        {% for item in popular_venues %}
+            <li class="list-group-item d-flex justify-content-between">
+                {{ item.venue_name }}
+                <span class="badge bg-warning text-dark">{{ item.festivals_count }}</span>
+            </li>
+        {% empty %}
+            <li class="list-group-item">Таких площадок пока нет.</li>
+        {% endfor %}
+    </ul>
+
+    <h2 class="h4">Организаторы</h2>
+    <table class="table table-sm bg-white">
+        <thead>
+            <tr><th>Организатор</th><th>E-mail</th><th>Фестивалей</th><th>Из них отменено</th></tr>
+        </thead>
+        <tbody>
+            {% for item in by_organizer %}
+                <tr>
+                    <td>{{ item.organizer_name }}</td>
+                    <td>{{ item.email }}</td>
+                    <td>{{ item.festivals_count }}</td>
+                    <td>{{ item.cancelled_count }}</td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="4">Данные отсутствуют.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h2 class="h4 mt-4">Фестивали по месяцам</h2>
+    <table class="table table-sm bg-white">
+        <thead>
+            <tr><th>Месяц</th><th>Фестивалей</th><th>Посетителей</th></tr>
+        </thead>
+        <tbody>
+            {% for item in by_month %}
+                <tr>
+                    <td>{{ item.month }}</td>
+                    <td>{{ item.festivals_count }}</td>
+                    <td>{{ item.visitors_total }}</td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="3">Данные отсутствуют.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

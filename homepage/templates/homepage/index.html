@@ -39,4 +39,18 @@
             </div>
         </div>
     </div>
+    <p class="text-muted mt-2">Суммарная вместимость площадок: {{ capacity_total|default:0 }} чел.</p>
+
+    <h2 class="h4 mt-4">Ближайшие фестивали</h2>
+    <ul class="list-group shadow-sm">
+        {% for festival in upcoming %}
+            <li class="list-group-item d-flex justify-content-between">
+                <a href="{% url 'festivals:detail' festival.id %}">{{ festival.title }}</a>
+                <span>{{ festival.festival_date|date:"d.m.Y" }}</span>
+            </li>
+        {% empty %}
+            <li class="list-group-item">Запланированных фестивалей нет.</li>
+        {% endfor %}
+    </ul>
+    <a href="{% url 'festivals:statistics' %}" class="btn btn-link mt-2 ps-0">Подробная статистика →</a>
 {% endblock %}

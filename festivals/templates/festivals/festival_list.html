@@ -3,8 +3,16 @@
 {% block title %}Фестивали – FestCity{% endblock %}
 
 {% block content %}
-    <h1 class="mb-2">Фестивали</h1>
-    <p class="text-muted">Всего фестивалей: {{ festivals|length }}</p>
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h1>Фестивали</h1>
+        <div class="btn-group">
+            <a href="{% url 'festivals:list' %}"
+               class="btn btn-outline-dark{% if not only_active %} active{% endif %}">Все</a>
+            <a href="{% url 'festivals:list' %}?status=active"
+               class="btn btn-outline-dark{% if only_active %} active{% endif %}">Только активные</a>
+        </div>
+    </div>
+    <p class="text-muted">Найдено фестивалей: {{ festivals|length }}</p>
 
     <ul class="list-group shadow-sm">
         {% for festival in festivals %}
@@ -12,7 +20,8 @@
                 <span>
                     <a href="{% url 'festivals:detail' festival.id %}">{{ festival.title|default:"Без названия" }}</a><br>
                     <small class="text-muted">
-                        {{ festival.venue.name }}, {{ festival.festival_date|date:"d.m.Y" }}
+                        {{ festival.venue_name }}, {{ festival.festival_date|date:"d.m.Y" }},
+                        орг. {{ festival.organizer_name }}
                     </small>
                 </span>
                 {% include "festivals/includes/festival_status.html" %}

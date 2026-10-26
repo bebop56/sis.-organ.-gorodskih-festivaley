@@ -11,7 +11,8 @@
                 <h1 class="card-title h3">{{ festival.title }}</h1>
                 <p class="card-text">
                     <strong>Площадка:</strong>
-                    <a href="{% url 'venues:detail' festival.venue.id %}">{{ festival.venue.name }}</a>
+                    <a href="{% url 'venues:detail' festival.venue_id %}">{{ festival.venue_name }}</a>
+                    (вместимость {{ festival.capacity }} чел.)
                 </p>
                 <p class="card-text">
                     <strong>Дата:</strong>
@@ -22,12 +23,12 @@
                 </p>
                 <p class="card-text">
                     <strong>Организатор:</strong>
-                    {{ festival.organizer.name }} ({{ festival.organizer.email|lower }})
+                    {{ festival.organizer_name }} ({{ festival.organizer_email|lower }})
                 </p>
                 <p class="card-text">
                     <strong>Ожидается посетителей:</strong>
                     {{ festival.expected_visitors }}
-                    (заполненность площадки {{ load_percent }}%)
+                    (заполненность площадки {{ festival.load_percent|floatformat:0 }}%)
                 </p>
                 <p class="card-text">
                     <strong>Статус:</strong>

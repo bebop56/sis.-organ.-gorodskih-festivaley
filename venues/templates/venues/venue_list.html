@@ -3,8 +3,30 @@
 {% block title %}Площадки – FestCity{% endblock %}
 
 {% block content %}
-    <h1 class="mb-2">Площадки</h1>
-    <p class="text-muted">Всего площадок: {{ venues|length }}</p>
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h1>Площадки</h1>
+        <a href="{% url 'venues:available' %}" class="btn btn-outline-primary">
+            Найти свободную площадку
+        </a>
+    </div>
+
+    <form method="get" class="row g-2 align-items-end mb-3">
+        <div class="col-auto">
+            <label for="min_capacity" class="form-label">Вместимость не менее</label>
+            <input type="number" min="1" id="min_capacity" name="min_capacity"
+                   class="form-control" value="{{ min_capacity|default_if_none:'' }}">
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-primary">Показать</button>
+            {% if min_capacity %}
+                <a href="{% url 'venues:list' %}" class="btn btn-link">Сбросить</a>
+            {% endif %}
+        </div>
+    </form>
+
+    <p class="text-muted">
+        Найдено площадок: {{ venues|length }}{% if min_capacity %} (от {{ min_capacity }} чел.){% endif %}
+    </p>
 
     {% for venue in venues %}
         {% include "venues/includes/venue_card.html" %}

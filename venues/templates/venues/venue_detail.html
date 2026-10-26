@@ -30,6 +30,7 @@
                     <span>
                         <a href="{% url 'festivals:detail' festival.id %}">{{ festival.title }}</a>
                         – {{ festival.festival_date|date:"d.m.Y" }}
+                        <small class="text-muted">(орг. {{ festival.organizer_name }})</small>
                     </span>
                     {% include "festivals/includes/festival_status.html" %}
                 </li>
