@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}Фестивали – FestCity{% endblock %}
+
+{% block content %}
+    <h1 class="mb-2">Фестивали</h1>
+    <p class="text-muted">Всего фестивалей: {{ festivals|length }}</p>
+
+    <ul class="list-group shadow-sm">
+        {% for festival in festivals %}
+            <li class="list-group-item d-flex justify-content-between align-items-center{% if festival.is_cancelled %} festival-cancelled{% endif %}">
+                <span>
+                    <a href="{% url 'festivals:detail' festival.id %}">{{ festival.title|default:"Без названия" }}</a><br>
+                    <small class="text-muted">
+                        {{ festival.venue.name }}, {{ festival.festival_date|date:"d.m.Y" }}
+                    </small>
+                </span>
+                {% include "festivals/includes/festival_status.html" %}
+            </li>
+        {% empty %}
+            <li class="list-group-item">Фестивали не найдены.</li>
+        {% endfor %}
+    </ul>
+{% endblock %}

@@ -1,0 +1,5 @@
+{% if festival.is_cancelled %}
+    <span class="badge bg-secondary festival-status festival-status-cancelled">отменён</span>
+{% else %}
+    <span class="badge bg-success festival-status festival-status-active">запланирован</span>
+{% endif %}

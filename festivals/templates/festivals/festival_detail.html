@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {% if festival %}{{ festival.title }} – FestCity{% else %}Фестиваль не найден – FestCity{% endif %}
+{% endblock %}
+
+{% block content %}
+    {% if festival %}
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h1 class="card-title h3">{{ festival.title }}</h1>
+                <p class="card-text">
+                    <strong>Площадка:</strong>
+                    <a href="{% url 'venues:detail' festival.venue.id %}">{{ festival.venue.name }}</a>
+                </p>
+                <p class="card-text">
+                    <strong>Дата:</strong>
+                    {{ festival.festival_date|date:"d.m.Y" }}
+                    <span data-days-left="{{ days_left }}">
+                        ({% if days_left >= 0 %}через {{ days_left }} дн.{% else %}уже прошёл{% endif %})
+                    </span>
+                </p>
+                <p class="card-text">
+                    <strong>Организатор:</strong>
+                    {{ festival.organizer.name }} ({{ festival.organizer.email|lower }})
+                </p>
+                <p class="card-text">
+                    <strong>Ожидается посетителей:</strong>
+                    {{ festival.expected_visitors }}
+                    (заполненность площадки {{ load_percent }}%)
+                </p>
+                <p class="card-text">
+                    <strong>Статус:</strong>
+                    {% include "festivals/includes/festival_status.html" %}
+                </p>
+            </div>
+        </div>
+    {% else %}
+        <h1 class="text-danger">Фестиваль не найден</h1>
+        <p>Фестиваль с указанным идентификатором отсутствует.</p>
+    {% endif %}
+
+    <a href="{% url 'festivals:list' %}" class="btn btn-outline-secondary mt-3">
+        ← к списку фестивалей
+    </a>
+{% endblock %}

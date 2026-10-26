@@ -2,11 +2,9 @@ from django.urls import path
 
 from . import views
 
+app_name = "festivals"
+
 urlpatterns = [
-    path("", views.festivals, name="festivals"),
-    path(
-        "<int:festival_id>/",
-        views.festival_detail,
-        name="festival_detail",
-    ),
+    path("", views.festivals, name="list"),
+    path("<int:festival_id>/", views.festival_detail, name="detail"),
 ]
