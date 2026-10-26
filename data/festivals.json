@@ -43,5 +43,23 @@
         "organizer_id": 2,
         "expected_visitors": 1400,
         "is_cancelled": false
+    },
+    {
+        "id": 6,
+        "title": "Новогодняя ярмарка",
+        "venue_id": 1,
+        "festival_date": "2026-12-27",
+        "organizer_id": 3,
+        "expected_visitors": 2500,
+        "is_cancelled": false
+    },
+    {
+        "id": 7,
+        "title": "Фестиваль уличного театра",
+        "venue_id": 2,
+        "festival_date": "2027-06-12",
+        "organizer_id": 1,
+        "expected_visitors": 1800,
+        "is_cancelled": false
     }
 ]
